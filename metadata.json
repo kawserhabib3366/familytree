@@ -1,0 +1,5 @@
+{
+  "name": "KinGraph - Dynamic Family Tree",
+  "description": "A web-based family tree application with an infinite zoomable canvas, dynamic node creation, and derived relationship logic.",
+  "requestFramePermissions": []
+}
