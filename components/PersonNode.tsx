@@ -7,6 +7,7 @@ interface Props {
   person: Person;
   isSelected: boolean;
   onClick: (e: React.MouseEvent) => void;
+  onContextMenu: (e: React.MouseEvent) => void;
   onDrag: (x: number, y: number) => void;
   onDelete?: (id: string) => void;
   zoomScale: number;
@@ -66,6 +67,7 @@ export const PersonNode: React.FC<Props> = ({
   person, 
   isSelected, 
   onClick, 
+  onContextMenu,
   onDrag,
   onDelete,
   zoomScale
@@ -100,6 +102,7 @@ export const PersonNode: React.FC<Props> = ({
       ref={gRef} 
       transform={`translate(${person.position.x}, ${person.position.y})`}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       className="cursor-pointer group"
       style={{ filter: deceasedFilter }}
     >

@@ -10,10 +10,19 @@ interface Props {
   onSelectPerson: (id: string | null) => void;
   onUpdatePosition: (id: string, x: number, y: number) => void;
   onDeletePerson: (id: string) => void;
+  onAddParent: (id: string) => void;
+  onAddSibling: (id: string) => void;
+  onAddChild: (id: string) => void;
 }
 
 export interface CanvasHandle {
   zoomToPerson: (id: string) => void;
+}
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+  personId: string;
 }
 
 export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({ 
@@ -21,10 +30,14 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
   selectedPersonId, 
   onSelectPerson,
   onUpdatePosition,
-  onDeletePerson
+  onDeletePerson,
+  onAddParent,
+  onAddSibling,
+  onAddChild
 }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [transform, setTransform] = useState<d3.ZoomTransform>(d3.zoomIdentity);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   useEffect(() => {
@@ -46,6 +59,11 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
       const height = svgRef.current.clientHeight;
       svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(width / 2, height / 2));
     }
+
+    // Close context menu on any global click or zoom start
+    const handleGlobalClick = () => setContextMenu(null);
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -69,6 +87,17 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
         );
     }
   }));
+
+  const handleNodeContextMenu = (e: React.MouseEvent, personId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      personId
+    });
+    onSelectPerson(personId);
+  };
 
   const renderRelationships = useMemo(() => {
     return data.relationships.map(rel => {
@@ -118,7 +147,16 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
       <svg 
         ref={svgRef} 
         className="w-full h-full outline-none touch-none"
-        onClick={() => onSelectPerson(null)}
+        onClick={() => {
+          onSelectPerson(null);
+          setContextMenu(null);
+        }}
+        onContextMenu={(e) => {
+          // If clicking background, just close menu and let default context menu handle it if needed
+          // Or prevent it to keep app focused
+          e.preventDefault();
+          setContextMenu(null);
+        }}
       >
         <g transform={transform.toString()}>
           {renderRelationships}
@@ -130,7 +168,9 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
               onClick={(e) => {
                 e.stopPropagation();
                 onSelectPerson(person.id);
+                setContextMenu(null);
               }}
+              onContextMenu={(e) => handleNodeContextMenu(e, person.id)}
               onDrag={(x, y) => onUpdatePosition(person.id, x, y)}
               onDelete={onDeletePerson}
               zoomScale={transform.k}
@@ -139,6 +179,53 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
         </g>
       </svg>
       
+      {/* Context Menu UI */}
+      {contextMenu && (
+        <div 
+          className="fixed bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl py-2 w-52 z-[60] animate-in fade-in zoom-in-95 duration-150"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button 
+            onClick={() => { onAddParent(contextMenu.personId); setContextMenu(null); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-slate-700 font-bold text-xs"
+          >
+            <div className="w-6 h-6 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
+            </div>
+            Add Parent
+          </button>
+          <button 
+            onClick={() => { onAddSibling(contextMenu.personId); setContextMenu(null); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-slate-700 font-bold text-xs"
+          >
+             <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+            </div>
+            Add Sibling
+          </button>
+          <button 
+            onClick={() => { onAddChild(contextMenu.personId); setContextMenu(null); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-slate-700 font-bold text-xs"
+          >
+             <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+            Add Child
+          </button>
+          <div className="h-px bg-slate-100 my-1 mx-2" />
+          <button 
+            onClick={() => { onDeletePerson(contextMenu.personId); setContextMenu(null); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-rose-50 transition-colors text-rose-600 font-bold text-xs"
+          >
+             <div className="w-6 h-6 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </div>
+            Remove Person
+          </button>
+        </div>
+      )}
+
       <div className="absolute bottom-6 right-6 flex flex-col gap-3 z-10 scale-110 md:scale-100 origin-bottom-right">
         <div className="bg-white/90 backdrop-blur-xl p-2 rounded-3xl shadow-2xl border border-slate-200 flex flex-col gap-2">
           <button 

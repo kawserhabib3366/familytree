@@ -78,10 +78,11 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Fix for Error in file App.tsx on line 208: Cannot find name 'deletePerson'.
-  // Added the missing deletePerson implementation using useCallback.
   const deletePerson = useCallback((id: string) => {
-    if (id === 'me') return;
+    if (id === 'me') {
+      alert("The root person 'Me' cannot be deleted.");
+      return;
+    }
     setData(prev => ({ 
       persons: prev.persons.filter(p => p.id !== id), 
       relationships: prev.relationships.filter(r => r.fromId !== id && r.toId !== id) 
@@ -217,6 +218,9 @@ const App: React.FC = () => {
           setData(prev => ({ ...prev, persons: prev.persons.map(p => p.id === id ? { ...p, position: { x, y } } : p) }));
         }}
         onDeletePerson={deletePerson}
+        onAddParent={addParent}
+        onAddSibling={addSibling}
+        onAddChild={addChild}
       />
       
       <Sidebar 
