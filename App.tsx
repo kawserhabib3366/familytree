@@ -39,6 +39,14 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
 
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, []);
+
   const filteredPersons = searchQuery.length > 1 
     ? data.persons.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
