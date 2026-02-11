@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { Person, Gender } from '../types';
 
@@ -8,7 +8,7 @@ interface Props {
   isSelected: boolean;
   onClick: (e: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
-  onDrag: (x: number, y: number) => void;
+  onDrag: (dx: number, dy: number) => void;
   onDelete?: (id: string) => void;
   zoomScale: number;
 }
@@ -73,17 +73,21 @@ export const PersonNode: React.FC<Props> = ({
   zoomScale
 }) => {
   const gRef = useRef<SVGGElement>(null);
-  const GRID_SIZE = 20;
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (!gRef.current) return;
 
     const dragBehavior = d3.drag<SVGGElement, unknown>()
+      .on('start', (event) => {
+        setIsDragging(true);
+        if (event.sourceEvent) event.sourceEvent.stopPropagation();
+      })
       .on('drag', (event) => {
-        // Implement snap-to-grid logic
-        const snappedX = Math.round(event.x / GRID_SIZE) * GRID_SIZE;
-        const snappedY = Math.round(event.y / GRID_SIZE) * GRID_SIZE;
-        onDrag(snappedX, snappedY);
+        onDrag(event.dx, event.dy);
+      })
+      .on('end', () => {
+        setIsDragging(false);
       });
 
     d3.select(gRef.current).call(dragBehavior);
@@ -101,35 +105,58 @@ export const PersonNode: React.FC<Props> = ({
     <g 
       ref={gRef} 
       transform={`translate(${person.position.x}, ${person.position.y})`}
-      onClick={onClick}
+      onClick={(e) => {
+        if (!isDragging) onClick(e);
+      }}
       onContextMenu={onContextMenu}
-      className="cursor-grab active:cursor-grabbing group"
+      className={`select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{ filter: deceasedFilter, touchAction: 'none' }}
     >
-      {/* Selection Glow */}
+      {/* Selection Ring (Static) */}
       {isSelected && (
-        <circle r="56" fill={person.color || (person.isDeceased ? '#000' : theme.glow)} fillOpacity={0.3} className="animate-pulse" />
+        <g>
+          <circle 
+            r="54" 
+            fill="none" 
+            stroke={person.color || theme.glow} 
+            strokeWidth="2" 
+            strokeDasharray="4 4" 
+            className="opacity-40"
+          />
+          <circle 
+            r="50" 
+            fill={person.color || theme.glow} 
+            fillOpacity={0.15} 
+          />
+        </g>
+      )}
+
+      {/* Lifted Shadow during drag */}
+      {isDragging && (
+        <circle r="42" fill="black" fillOpacity={0.15} transform="translate(6, 6)" filter="blur(8px)" />
       )}
       
-      {/* Background Aura */}
       <circle r="44" fill="white" className="opacity-10" />
 
       {/* Main Node Body */}
       <circle 
         r="40" 
         style={mainCircleStyle}
-        className={`${person.color ? '' : theme.bg} ${person.isDeceased ? 'stroke-black' : theme.stroke} transition-all duration-300 ${isSelected ? 'stroke-[8px]' : 'stroke-[4px]'}`}
+        className={`
+          ${person.color ? '' : theme.bg} 
+          ${person.isDeceased ? 'stroke-black' : theme.stroke} 
+          ${isSelected ? 'stroke-[6px]' : 'stroke-[4px]'}
+          ${isDragging ? 'drop-shadow-2xl' : 'drop-shadow-md'}
+        `}
         stroke={person.isDeceased ? 'black' : 'white'}
       />
       
-      {/* Icon */}
       <g transform="translate(-16, -16) scale(1.33)">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="pointer-events-none drop-shadow-sm">
           {theme.icon}
         </svg>
       </g>
 
-      {/* Deceased Tombstone Badge */}
       {person.isDeceased && (
         <g transform="translate(26, -26)">
           <circle r="14" fill="black" stroke="white" strokeWidth="2" />
@@ -138,30 +165,30 @@ export const PersonNode: React.FC<Props> = ({
       )}
 
       {/* Label Group */}
-      <foreignObject x="-80" y="46" width="160" height="70">
+      <foreignObject x="-80" y="46" width="160" height="80">
         <div className="flex flex-col items-center p-1 text-center pointer-events-none">
           <span className={`
-            px-3 py-0.5 rounded-full text-[11px] font-black shadow-md transition-all duration-300 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full
-            ${isSelected ? 'bg-slate-900 text-white scale-110 ring-2 ring-white' : (person.isDeceased ? 'bg-black text-slate-100' : 'bg-white text-slate-800 border-2 border-slate-100')}
+            px-3 py-1 rounded-full text-[11px] font-black shadow-md tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full
+            ${isSelected 
+              ? 'bg-slate-900 text-white ring-2 ring-white z-10' 
+              : (person.isDeceased ? 'bg-black text-slate-100' : 'bg-white text-slate-800 border border-slate-200')}
           `}>
             {person.name || 'Unnamed'}
           </span>
           {datesText && (
-            <span className="mt-1 px-2 py-0.5 bg-slate-900/5 backdrop-blur-sm rounded text-[9px] font-bold text-slate-500 tracking-tighter uppercase whitespace-nowrap">
+            <span className={`
+              mt-1.5 px-2 py-0.5 rounded text-[9px] font-bold tracking-tighter uppercase whitespace-nowrap
+              ${isSelected ? 'bg-slate-900 text-slate-200' : 'bg-slate-900/5 backdrop-blur-sm text-slate-500'}
+            `}>
               {datesText}
             </span>
           )}
         </div>
       </foreignObject>
 
-      {/* Delete Shortcut */}
-      {isSelected && person.id !== 'me' && (
-        <g 
-          transform="translate(38, -38)"
-          onClick={(e) => { e.stopPropagation(); onDelete?.(person.id); }}
-          className="hover:scale-110 transition-transform pointer-events-auto"
-        >
-          <circle r="15" fill="#ef4444" stroke="white" strokeWidth="3" />
+      {isSelected && person.id !== 'me' && !isDragging && (
+        <g transform="translate(38, -38)" onClick={(e) => { e.stopPropagation(); onDelete?.(person.id); }} className="cursor-pointer">
+          <circle r="15" fill="#ef4444" stroke="white" strokeWidth="2" />
           <path d="M-4 -4 L4 4 M4 -4 L-4 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
         </g>
       )}

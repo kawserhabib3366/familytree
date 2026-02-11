@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { FamilyTreeCanvas, CanvasHandle } from './components/FamilyTreeCanvas';
 import { Sidebar } from './components/Sidebar';
-import { Person, Gender, FamilyData, Relationship } from './types';
+import { Person, Gender, FamilyData, Relationship, RelationshipType } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const STORAGE_KEY = 'kingraph_v1_data';
@@ -31,7 +31,7 @@ const App: React.FC = () => {
     };
   });
   
-  const [selectedPersonId, setSelectedPersonId] = useState<string | null>('me');
+  const [selectedIds, setSelectedIds] = useState<string[]>(['me']);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -44,9 +44,9 @@ const App: React.FC = () => {
     : [];
 
   const handleJumpToPerson = (id: string) => {
-    setSelectedPersonId(id);
+    setSelectedIds([id]);
     setSearchQuery('');
-    canvasRef.current?.zoomToPerson(id);
+    canvasRef.current?.jumpToPerson(id);
   };
 
   const handleExport = useCallback(() => {
@@ -66,7 +66,7 @@ const App: React.FC = () => {
       const imported = JSON.parse(jsonData);
       if (imported.persons && Array.isArray(imported.persons)) {
         setData(imported);
-        setSelectedPersonId(imported.persons[0]?.id || null);
+        setSelectedIds(imported.persons[0] ? [imported.persons[0].id] : []);
       }
     } catch (e) { alert("Invalid data format."); }
   }, []);
@@ -74,7 +74,7 @@ const App: React.FC = () => {
   const handleReset = useCallback(() => {
     if (window.confirm("Clear all data?")) {
       setData({ persons: [{ ...INITIAL_PERSON, id: 'me' }], relationships: [] });
-      setSelectedPersonId('me');
+      setSelectedIds(['me']);
     }
   }, []);
 
@@ -87,7 +87,7 @@ const App: React.FC = () => {
       persons: prev.persons.filter(p => p.id !== id), 
       relationships: prev.relationships.filter(r => r.fromId !== id && r.toId !== id) 
     }));
-    setSelectedPersonId(null);
+    setSelectedIds(prev => prev.filter(sid => sid !== id));
   }, []);
 
   const addParent = useCallback((childId: string) => {
@@ -196,17 +196,43 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleAddRelationship = useCallback((fromId: string, toId: string, type: RelationshipType, label?: string) => {
+    if (fromId === toId) return;
+    setData(prev => {
+      const alreadyExists = prev.relationships.some(r => 
+        r.type === type && 
+        ((r.fromId === fromId && r.toId === toId) || (type === 'spouse' && r.fromId === toId && r.toId === fromId))
+      );
+      if (alreadyExists) return prev;
+
+      const newRel: Relationship = { id: uuidv4(), type, fromId, toId, label };
+      return { ...prev, relationships: [...prev.relationships, newRel] };
+    });
+  }, []);
+
+  const handleUpdatePosition = useCallback((id: string, dx: number, dy: number) => {
+    setData(prev => {
+      const moveIds = selectedIds.includes(id) ? selectedIds : [id];
+      return {
+        ...prev,
+        persons: prev.persons.map(p => 
+          moveIds.includes(p.id) 
+            ? { ...p, position: { x: p.position.x + dx, y: p.position.y + dy } } 
+            : p
+        )
+      };
+    });
+  }, [selectedIds]);
+
   return (
     <div className="flex h-screen w-screen bg-slate-50 overflow-hidden font-sans text-slate-900 relative">
-      {/* Mobile Backdrop Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Search Header */}
       <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-xs sm:max-w-md px-4 pointer-events-none">
         <div className="bg-white/90 backdrop-blur-xl rounded-full shadow-2xl border border-slate-200 p-1 flex items-center gap-2 pointer-events-auto ring-1 ring-black/5">
           <div className="pl-3 text-slate-400">
@@ -221,14 +247,13 @@ const App: React.FC = () => {
           />
         </div>
         
-        {/* Search Results */}
         {filteredPersons.length > 0 && (
-          <div className="mt-2 bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden pointer-events-auto animate-in fade-in zoom-in-95 duration-200 max-h-[50vh] overflow-y-auto">
+          <div className="mt-2 bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden pointer-events-auto max-h-[50vh] overflow-y-auto">
             {filteredPersons.slice(0, 10).map(p => (
               <button 
                 key={p.id}
                 onClick={() => handleJumpToPerson(p.id)}
-                className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-none"
+                className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-50 last:border-none"
               >
                 <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-bold text-white text-[9px] sm:text-[10px] ${p.gender === Gender.MALE ? 'bg-sky-500' : 'bg-rose-500'}`}>
                   {p.name[0]}
@@ -246,14 +271,12 @@ const App: React.FC = () => {
       <FamilyTreeCanvas 
         ref={canvasRef}
         data={data}
-        selectedPersonId={selectedPersonId}
-        onSelectPerson={(id) => {
-          setSelectedPersonId(id);
-          if (id && window.innerWidth < 768) setIsSidebarOpen(true);
+        selectedIds={selectedIds}
+        onSelectPersons={(ids) => {
+          setSelectedIds(ids);
+          if (ids.length === 1 && window.innerWidth < 768) setIsSidebarOpen(true);
         }}
-        onUpdatePosition={(id, x, y) => {
-          setData(prev => ({ ...prev, persons: prev.persons.map(p => p.id === id ? { ...p, position: { x, y } } : p) }));
-        }}
+        onUpdatePosition={handleUpdatePosition}
         onDeletePerson={deletePerson}
         onAddParent={addParent}
         onAddSibling={addSibling}
@@ -263,13 +286,14 @@ const App: React.FC = () => {
       <Sidebar 
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        selectedPerson={data.persons.find(p => p.id === selectedPersonId) || null}
+        selectedPerson={data.persons.find(p => p.id === selectedIds[0]) || null}
         relationships={data.relationships}
         persons={data.persons}
         onAddParent={addParent}
         onAddSibling={addSibling}
         onAddSpouse={addSpouse}
         onAddChild={addChild}
+        onAddRelationship={handleAddRelationship}
         onUpdatePerson={(p) => setData(prev => ({ ...prev, persons: prev.persons.map(old => old.id === p.id ? p : old) }))}
         onDeletePerson={deletePerson}
         onExport={handleExport}
@@ -277,11 +301,10 @@ const App: React.FC = () => {
         onReset={handleReset}
       />
 
-      {/* Floating Toggle Button */}
       {!isSidebarOpen && (
         <button 
           onClick={() => setIsSidebarOpen(true)} 
-          className="fixed bottom-6 sm:bottom-8 right-6 w-14 h-14 sm:w-16 sm:h-16 bg-slate-900 text-white rounded-2xl shadow-2xl flex items-center justify-center z-20 active:scale-90 hover:scale-105 transition-all border-2 sm:border-4 border-white mb-[env(safe-area-inset-bottom)]"
+          className="fixed bottom-6 sm:bottom-8 right-6 w-14 h-14 sm:w-16 sm:h-16 bg-slate-900 text-white rounded-2xl shadow-2xl flex items-center justify-center z-20 border-2 sm:border-4 border-white mb-[env(safe-area-inset-bottom)]"
           aria-label="Open Sidebar"
         >
           <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
