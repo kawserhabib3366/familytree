@@ -33,6 +33,13 @@ const PRESET_COLORS = [
   { name: 'Black', value: '#0f172a' },
 ];
 
+const GENDER_OPTIONS = [
+  { label: 'Male', value: Gender.MALE, color: 'bg-sky-500' },
+  { label: 'Female', value: Gender.FEMALE, color: 'bg-rose-500' },
+  { label: 'Other', value: Gender.OTHER, color: 'bg-indigo-500' },
+  { label: 'Unknown', value: Gender.UNKNOWN, color: 'bg-slate-400' },
+];
+
 export const Sidebar: React.FC<Props> = ({
   isOpen,
   onToggle,
@@ -143,6 +150,25 @@ export const Sidebar: React.FC<Props> = ({
                 <label className="block text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase mb-1 sm:mb-2 ml-1">Full Name</label>
                 <input type="text" value={selectedPerson.name} onChange={e => onUpdatePerson({...selectedPerson, name: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 text-xs sm:text-sm font-bold text-slate-800 shadow-sm" placeholder="e.g. John Doe" />
               </div>
+
+              <div>
+                <label className="block text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase mb-2 sm:mb-3 ml-1">Gender</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {GENDER_OPTIONS.map((g) => (
+                    <button
+                      key={g.value}
+                      onClick={() => onUpdatePerson({ ...selectedPerson, gender: g.value })}
+                      className={`py-2.5 sm:py-3 px-3 rounded-xl border text-[9px] sm:text-[10px] font-black uppercase tracking-tight transition-all active:scale-95 flex items-center justify-center gap-2
+                        ${selectedPerson.gender === g.value 
+                          ? `${g.color} text-white border-transparent shadow-md` 
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase mb-1 sm:mb-2 ml-1">Born</label>

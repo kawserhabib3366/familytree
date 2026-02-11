@@ -121,6 +121,7 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
         );
       }
 
+      // Reverted Parent-Child: Smooth Cubic Bezier Path
       const dx = to.position.x - from.position.x;
       const dy = to.position.y - from.position.y;
       const midY = from.position.y + dy / 2;
@@ -224,8 +225,8 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
         </div>
       )}
 
-      {/* Floating Canvas Controls - Moved to left on mobile to avoid toggle button conflict */}
-      <div className="absolute bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-6 sm:left-auto sm:right-6 flex flex-col gap-2 sm:gap-3 z-10 scale-90 sm:scale-100 origin-bottom-left sm:origin-bottom-right">
+      {/* Floating Canvas Controls */}
+      <div className="absolute bottom-6 sm:bottom-8 left-6 sm:left-auto sm:right-6 flex flex-col gap-2 sm:gap-3 z-10 scale-90 sm:scale-100 origin-bottom-left sm:origin-bottom-right mb-[env(safe-area-inset-bottom)]">
         <div className="bg-white/90 backdrop-blur-xl p-1.5 sm:p-2 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 flex flex-col gap-1.5 sm:gap-2">
           <button 
             onClick={() => d3.select(svgRef.current!).transition().duration(200).call(zoomBehaviorRef.current!.scaleBy, 1.5)}
