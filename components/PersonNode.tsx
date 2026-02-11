@@ -71,25 +71,29 @@ export const PersonNode: React.FC<Props> = ({
   zoomScale
 }) => {
   const gRef = useRef<SVGGElement>(null);
+  const GRID_SIZE = 20;
 
   useEffect(() => {
     if (!gRef.current) return;
 
     const dragBehavior = d3.drag<SVGGElement, unknown>()
       .on('drag', (event) => {
-        onDrag(event.x, event.y);
+        // Implement snap-to-grid logic
+        const snappedX = Math.round(event.x / GRID_SIZE) * GRID_SIZE;
+        const snappedY = Math.round(event.y / GRID_SIZE) * GRID_SIZE;
+        onDrag(snappedX, snappedY);
       });
 
     d3.select(gRef.current).call(dragBehavior);
   }, [onDrag]);
 
   const theme = GENDER_THEMES[person.gender] || GENDER_THEMES[Gender.UNKNOWN];
-  
-  // Use custom color if provided, otherwise fallback to theme class
+  const deceasedFilter = person.isDeceased ? 'grayscale(100%) opacity(0.8)' : 'none';
   const mainCircleStyle = person.color ? { fill: person.color } : {};
-  const mainCircleClass = person.color 
-    ? `${theme.stroke} transition-all duration-300 shadow-2xl ${isSelected ? 'stroke-[8px]' : 'stroke-[4px]'}` 
-    : `${theme.bg} ${theme.stroke} transition-all duration-300 shadow-2xl ${isSelected ? 'stroke-[8px]' : 'stroke-[4px]'}`;
+
+  const datesText = [person.birthYear, person.deathYear]
+    .filter(Boolean)
+    .join(' — ');
 
   return (
     <g 
@@ -97,51 +101,65 @@ export const PersonNode: React.FC<Props> = ({
       transform={`translate(${person.position.x}, ${person.position.y})`}
       onClick={onClick}
       className="cursor-pointer group"
+      style={{ filter: deceasedFilter }}
     >
-      {/* Selection Backdrop */}
+      {/* Selection Glow */}
       {isSelected && (
-        <circle r="54" fill={person.color ? person.color : theme.glow} fillOpacity={0.4} className="animate-pulse" />
+        <circle r="56" fill={person.color || (person.isDeceased ? '#000' : theme.glow)} fillOpacity={0.3} className="animate-pulse" />
       )}
       
-      {/* Connection Point Aura */}
-      <circle r="44" fill="white" className="opacity-20" />
+      {/* Background Aura */}
+      <circle r="44" fill="white" className="opacity-10" />
 
       {/* Main Node Body */}
       <circle 
         r="40" 
         style={mainCircleStyle}
-        className={mainCircleClass}
-        stroke="white"
+        className={`${person.color ? '' : theme.bg} ${person.isDeceased ? 'stroke-black' : theme.stroke} transition-all duration-300 ${isSelected ? 'stroke-[8px]' : 'stroke-[4px]'}`}
+        stroke={person.isDeceased ? 'black' : 'white'}
       />
       
-      {/* Gender/Status Icon */}
+      {/* Icon */}
       <g transform="translate(-16, -16) scale(1.33)">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="pointer-events-none drop-shadow-sm">
           {theme.icon}
         </svg>
       </g>
 
-      {/* Name Label */}
-      <foreignObject x="-80" y="46" width="160" height="50">
-        <div className="flex justify-center p-1">
-          <span className={`px-4 py-1 rounded-full text-xs font-black shadow-lg transition-all duration-300 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full ${isSelected ? 'bg-slate-900 text-white scale-110' : 'bg-white text-slate-800 border-2 border-slate-100'}`}>
+      {/* Deceased Tombstone Badge */}
+      {person.isDeceased && (
+        <g transform="translate(26, -26)">
+          <circle r="14" fill="black" stroke="white" strokeWidth="2" />
+          <path d="M-5 5 L5 5 L5 -2 Q5 -7 0 -7 Q-5 -7 -5 -2 Z" fill="white" transform="scale(0.9)" />
+        </g>
+      )}
+
+      {/* Label Group */}
+      <foreignObject x="-80" y="46" width="160" height="70">
+        <div className="flex flex-col items-center p-1 text-center">
+          <span className={`
+            px-3 py-0.5 rounded-full text-[11px] font-black shadow-md transition-all duration-300 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full
+            ${isSelected ? 'bg-slate-900 text-white scale-110 ring-2 ring-white' : (person.isDeceased ? 'bg-black text-slate-100' : 'bg-white text-slate-800 border-2 border-slate-100')}
+          `}>
             {person.name || 'Unnamed'}
           </span>
+          {datesText && (
+            <span className="mt-1 px-2 py-0.5 bg-slate-900/5 backdrop-blur-sm rounded text-[9px] font-bold text-slate-500 tracking-tighter uppercase whitespace-nowrap">
+              {datesText}
+            </span>
+          )}
         </div>
       </foreignObject>
 
-      {/* Contextual Delete Button */}
+      {/* Delete Shortcut */}
       {isSelected && person.id !== 'me' && (
         <g 
           transform="translate(38, -38)"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete?.(person.id);
-          }}
-          className="hover:scale-125 transition-transform duration-200"
+          onClick={(e) => { e.stopPropagation(); onDelete?.(person.id); }}
+          className="hover:scale-110 transition-transform"
         >
-          <circle r="16" fill="#f43f5e" stroke="white" strokeWidth="3" className="shadow-lg" />
-          <path d="M-5 -5 L5 5 M5 -5 L-5 5" stroke="white" strokeWidth="3" strokeLinecap="round" />
+          <circle r="15" fill="#ef4444" stroke="white" strokeWidth="3" />
+          <path d="M-4 -4 L4 4 M4 -4 L-4 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
         </g>
       )}
     </g>

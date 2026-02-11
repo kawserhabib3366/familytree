@@ -12,6 +12,9 @@ export interface Person {
   gender: Gender;
   color?: string; // Hex color or CSS color name
   isPlaceholder?: boolean;
+  isDeceased?: boolean;
+  birthYear?: string;
+  deathYear?: string;
   position: { x: number; y: number };
 }
 
