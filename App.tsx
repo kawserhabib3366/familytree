@@ -145,6 +145,35 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const addSpouse = useCallback((personId: string, spouseId?: string) => {
+    setData(prev => {
+      const person = prev.persons.find(p => p.id === personId);
+      if (!person) return prev;
+
+      const newPersons = [...prev.persons];
+      const newRels = [...prev.relationships];
+      let finalSpouseId = spouseId;
+
+      if (!finalSpouseId) {
+        finalSpouseId = uuidv4();
+        const guessGender = person.gender === Gender.MALE ? Gender.FEMALE : (person.gender === Gender.FEMALE ? Gender.MALE : Gender.UNKNOWN);
+        newPersons.push({ 
+          id: finalSpouseId, 
+          name: 'Partner', 
+          gender: guessGender, 
+          position: { x: person.position.x + 220, y: person.position.y } 
+        });
+      }
+
+      const alreadySpouses = newRels.some(r => r.type === 'spouse' && ((r.fromId === personId && r.toId === finalSpouseId) || (r.fromId === finalSpouseId && r.toId === personId)));
+      if (!alreadySpouses) {
+        newRels.push({ id: uuidv4(), type: 'spouse', fromId: personId, toId: finalSpouseId });
+      }
+
+      return { persons: newPersons, relationships: newRels };
+    });
+  }, []);
+
   const addChild = useCallback((parentId: string, partnerId?: string) => {
     setData(prev => {
       const parent = prev.persons.find(p => p.id === parentId);
@@ -169,7 +198,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen bg-slate-50 overflow-hidden font-sans text-slate-900 relative">
-      {/* Mobile Backdrop Overlay - High Z-Index to handle all clicks */}
+      {/* Mobile Backdrop Overlay */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300"
@@ -239,6 +268,7 @@ const App: React.FC = () => {
         persons={data.persons}
         onAddParent={addParent}
         onAddSibling={addSibling}
+        onAddSpouse={addSpouse}
         onAddChild={addChild}
         onUpdatePerson={(p) => setData(prev => ({ ...prev, persons: prev.persons.map(old => old.id === p.id ? p : old) }))}
         onDeletePerson={deletePerson}
@@ -247,7 +277,7 @@ const App: React.FC = () => {
         onReset={handleReset}
       />
 
-      {/* Floating Toggle Button - Optimized for better mobile visibility and avoidance of UI overlaps */}
+      {/* Floating Toggle Button */}
       {!isSidebarOpen && (
         <button 
           onClick={() => setIsSidebarOpen(true)} 
