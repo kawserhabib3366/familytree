@@ -169,36 +169,44 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen bg-slate-50 overflow-hidden font-sans text-slate-900 relative">
+      {/* Mobile Backdrop Overlay - High Z-Index to handle all clicks */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Search Header */}
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 pointer-events-none">
-        <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-slate-200 p-1.5 flex items-center gap-2 pointer-events-auto ring-1 ring-black/5">
-          <div className="pl-4 text-slate-400">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+      <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-xs sm:max-w-md px-4 pointer-events-none">
+        <div className="bg-white/90 backdrop-blur-xl rounded-full shadow-2xl border border-slate-200 p-1 flex items-center gap-2 pointer-events-auto ring-1 ring-black/5">
+          <div className="pl-3 text-slate-400">
+            <svg className="w-4 h-4 sm:w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </div>
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search family member..."
-            className="flex-1 bg-transparent border-none outline-none py-2 text-sm font-bold text-slate-800 placeholder:text-slate-400"
+            placeholder="Search family..."
+            className="flex-1 bg-transparent border-none outline-none py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-slate-800 placeholder:text-slate-400"
           />
         </div>
         
         {/* Search Results */}
         {filteredPersons.length > 0 && (
-          <div className="mt-2 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden pointer-events-auto animate-in fade-in zoom-in-95 duration-200">
-            {filteredPersons.slice(0, 5).map(p => (
+          <div className="mt-2 bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden pointer-events-auto animate-in fade-in zoom-in-95 duration-200 max-h-[50vh] overflow-y-auto">
+            {filteredPersons.slice(0, 10).map(p => (
               <button 
                 key={p.id}
                 onClick={() => handleJumpToPerson(p.id)}
-                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-none"
+                className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-none"
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-[10px] ${p.gender === Gender.MALE ? 'bg-sky-500' : 'bg-rose-500'}`}>
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-bold text-white text-[9px] sm:text-[10px] ${p.gender === Gender.MALE ? 'bg-sky-500' : 'bg-rose-500'}`}>
                   {p.name[0]}
                 </div>
-                <div className="text-left flex-1">
-                  <p className="text-sm font-black text-slate-800">{p.name}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">{p.birthYear || 'Unknown'} — {p.deathYear || (p.isDeceased ? '?' : 'Present')}</p>
+                <div className="text-left flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm font-black text-slate-800 truncate">{p.name}</p>
+                  <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase truncate">{p.birthYear || 'Unknown'} — {p.deathYear || (p.isDeceased ? '?' : 'Present')}</p>
                 </div>
               </button>
             ))}
@@ -239,9 +247,14 @@ const App: React.FC = () => {
         onReset={handleReset}
       />
 
+      {/* Floating Toggle Button - Optimized for better mobile visibility and avoidance of UI overlaps */}
       {!isSidebarOpen && (
-        <button onClick={() => setIsSidebarOpen(true)} className="fixed bottom-6 right-6 w-16 h-16 bg-slate-900 text-white rounded-2xl shadow-2xl flex items-center justify-center z-20 active:scale-90 transition-all border-4 border-white">
-          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+        <button 
+          onClick={() => setIsSidebarOpen(true)} 
+          className="fixed bottom-6 sm:bottom-8 right-6 w-14 h-14 sm:w-16 sm:h-16 bg-slate-900 text-white rounded-2xl shadow-2xl flex items-center justify-center z-20 active:scale-90 hover:scale-105 transition-all border-2 sm:border-4 border-white mb-[env(safe-area-inset-bottom)]"
+          aria-label="Open Sidebar"
+        >
+          <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
         </button>
       )}
     </div>
