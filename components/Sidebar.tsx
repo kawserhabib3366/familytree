@@ -111,7 +111,7 @@ export const Sidebar: React.FC<Props> = ({
 
   return (
     <div className={sidebarClasses}>
-      {/* Fixed Header - Compact on small screens */}
+      {/* Fixed Header */}
       <div className="flex items-center justify-between p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-50 sticky top-0 bg-white z-10">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <div style={selectedPerson.color ? { backgroundColor: selectedPerson.color } : {}} className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-white text-base sm:text-lg shadow-lg ${!selectedPerson.color ? (selectedPerson.gender === Gender.MALE ? 'bg-sky-500' : 'bg-rose-500') : ''}`}>
@@ -135,7 +135,7 @@ export const Sidebar: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-2 scrollbar-hide">
         {activeTab === 'details' && (
           <div className="space-y-4 sm:space-y-6 animate-in slide-in-from-right-2 duration-200">
             <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-100 space-y-3 sm:space-y-4">
@@ -192,6 +192,15 @@ export const Sidebar: React.FC<Props> = ({
         )}
 
         {activeTab === 'storage' && renderStorageTab()}
+      </div>
+
+      {/* Sticky Tab Bar inside Sidebar for Mobile */}
+      <div className="md:hidden sticky bottom-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 p-2 pb-[env(safe-area-inset-bottom)] z-20">
+         <div className="flex bg-slate-100 p-1 rounded-xl">
+           <button onClick={() => setActiveTab('details')} className={`flex-1 py-3 text-[9px] font-black rounded-lg transition-all ${activeTab === 'details' ? 'bg-white shadow text-slate-900' : 'text-slate-400'}`}>PROFILE</button>
+           <button onClick={() => setActiveTab('actions')} className={`flex-1 py-3 text-[9px] font-black rounded-lg transition-all ${activeTab === 'actions' ? 'bg-white shadow text-slate-900' : 'text-slate-400'}`}>CONNECT</button>
+           <button onClick={() => setActiveTab('storage')} className={`flex-1 py-3 text-[9px] font-black rounded-lg transition-all ${activeTab === 'storage' ? 'bg-white shadow text-slate-900' : 'text-slate-400'}`}>FILES</button>
+         </div>
       </div>
     </div>
   );

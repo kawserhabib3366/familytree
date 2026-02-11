@@ -152,8 +152,6 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
           setContextMenu(null);
         }}
         onContextMenu={(e) => {
-          // If clicking background, just close menu and let default context menu handle it if needed
-          // Or prevent it to keep app focused
           e.preventDefault();
           setContextMenu(null);
         }}
@@ -226,17 +224,18 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
         </div>
       )}
 
-      <div className="absolute bottom-6 right-6 flex flex-col gap-3 z-10 scale-110 md:scale-100 origin-bottom-right">
-        <div className="bg-white/90 backdrop-blur-xl p-2 rounded-3xl shadow-2xl border border-slate-200 flex flex-col gap-2">
+      {/* Floating Canvas Controls - Moved to left on mobile to avoid toggle button conflict */}
+      <div className="absolute bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-6 sm:left-auto sm:right-6 flex flex-col gap-2 sm:gap-3 z-10 scale-90 sm:scale-100 origin-bottom-left sm:origin-bottom-right">
+        <div className="bg-white/90 backdrop-blur-xl p-1.5 sm:p-2 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 flex flex-col gap-1.5 sm:gap-2">
           <button 
             onClick={() => d3.select(svgRef.current!).transition().duration(200).call(zoomBehaviorRef.current!.scaleBy, 1.5)}
-            className="w-12 h-12 hover:bg-slate-100 rounded-2xl transition-all text-slate-800 font-black text-2xl flex items-center justify-center active:scale-90"
+            className="w-10 h-10 sm:w-12 sm:h-12 hover:bg-slate-100 rounded-xl sm:rounded-2xl transition-all text-slate-800 font-black text-xl sm:text-2xl flex items-center justify-center active:scale-90"
           >
             +
           </button>
           <button 
             onClick={() => d3.select(svgRef.current!).transition().duration(200).call(zoomBehaviorRef.current!.scaleBy, 0.6)}
-            className="w-12 h-12 hover:bg-slate-100 rounded-2xl transition-all text-slate-800 font-black text-2xl flex items-center justify-center active:scale-90"
+            className="w-10 h-10 sm:w-12 sm:h-12 hover:bg-slate-100 rounded-xl sm:rounded-2xl transition-all text-slate-800 font-black text-xl sm:text-2xl flex items-center justify-center active:scale-90"
           >
             −
           </button>
@@ -250,9 +249,9 @@ export const FamilyTreeCanvas = forwardRef<CanvasHandle, Props>(({
                 d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
               );
             }}
-            className="w-12 h-12 hover:bg-slate-100 rounded-2xl transition-all flex items-center justify-center active:scale-90"
+            className="w-10 h-10 sm:w-12 sm:h-12 hover:bg-slate-100 rounded-xl sm:rounded-2xl transition-all flex items-center justify-center active:scale-90"
           >
-            <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
             </svg>
           </button>

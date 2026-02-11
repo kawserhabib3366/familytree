@@ -103,8 +103,8 @@ export const PersonNode: React.FC<Props> = ({
       transform={`translate(${person.position.x}, ${person.position.y})`}
       onClick={onClick}
       onContextMenu={onContextMenu}
-      className="cursor-pointer group"
-      style={{ filter: deceasedFilter }}
+      className="cursor-grab active:cursor-grabbing group"
+      style={{ filter: deceasedFilter, touchAction: 'none' }}
     >
       {/* Selection Glow */}
       {isSelected && (
@@ -139,7 +139,7 @@ export const PersonNode: React.FC<Props> = ({
 
       {/* Label Group */}
       <foreignObject x="-80" y="46" width="160" height="70">
-        <div className="flex flex-col items-center p-1 text-center">
+        <div className="flex flex-col items-center p-1 text-center pointer-events-none">
           <span className={`
             px-3 py-0.5 rounded-full text-[11px] font-black shadow-md transition-all duration-300 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full
             ${isSelected ? 'bg-slate-900 text-white scale-110 ring-2 ring-white' : (person.isDeceased ? 'bg-black text-slate-100' : 'bg-white text-slate-800 border-2 border-slate-100')}
@@ -159,7 +159,7 @@ export const PersonNode: React.FC<Props> = ({
         <g 
           transform="translate(38, -38)"
           onClick={(e) => { e.stopPropagation(); onDelete?.(person.id); }}
-          className="hover:scale-110 transition-transform"
+          className="hover:scale-110 transition-transform pointer-events-auto"
         >
           <circle r="15" fill="#ef4444" stroke="white" strokeWidth="3" />
           <path d="M-4 -4 L4 4 M4 -4 L-4 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
